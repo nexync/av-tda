@@ -3,3 +3,9 @@
 
 # datasets
 /datasets/sample/
+/datasets/aerial_map/
+/datasets/semantic_map/
+/datasets/train
+
+# jupyter
+.ipynb_checkpoints
