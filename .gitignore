@@ -2,10 +2,8 @@
 .DS_Store
 
 # datasets
-/datasets/sample/
-/datasets/aerial_map/
-/datasets/semantic_map/
-/datasets/train
+dataset/*
+!dataset/README.md
 
 # jupyter
 .ipynb_checkpoints
