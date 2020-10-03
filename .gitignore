@@ -7,3 +7,6 @@ dataset/*
 
 # jupyter
 .ipynb_checkpoints
+
+# python packages
+__pycache__
