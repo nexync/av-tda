@@ -5,7 +5,9 @@ from mpl_toolkits.mplot3d import Axes3D
 
 from sklearn.cluster import MeanShift, estimate_bandwidth, KMeans
 
-from itertools import cycle
+from itertools import cycle, combinations
+
+from .distance import *
 
 '''
 This is a clusterer for a particular frame
@@ -90,6 +92,55 @@ class Cluster:
 
         plt.title('estimated number of clusters: %d' % self._n_clusters)
 
+    def generate_distance_matrixes(self, edge_distances=True):
+        '''
+        Generates and stores distance matricies between all of the cars within each cluster
+        @param edge_distances: (bool). if two find distances between nearest edges of cars. if false use centroid
+        @return distance_matrices. the list of distance matrices
+        '''
+
+        cluster_to_indices = [None] * self._n_clusters
+
+        for i, label in enumerate(self._labels):
+            # if we have not created the array at the particular index yet, do so
+            if not cluster_to_indices[label]:
+                cluster_to_indices[label] = []
+
+            cluster_to_indices[label].append(i)
+
+        self._distance_matrices = []
+
+        for cluster in cluster_to_indices:
+            matrix = dict()
+
+            for comb in combinations(cluster, 2):
+                agent1_index = self._aii[0] + comb[0]
+                agent2_index = self._aii[0] + comb[1]
+
+                agent1 = self._agents[agent1_index]
+                agent2 = self._agents[agent2_index]
+
+                if edge_distances:
+                    distance = distance_from_edges(agent1, agent2)
+                else:
+                    distance = distance_from_centroids(agent1, agent2)
+
+                if comb[0] not in matrix:
+                    matrix[comb[0]] = {}
+                if comb[1] not in matrix:
+                    matrix[comb[1]] = {}
+
+                matrix[comb[0]][comb[1]] = matrix[comb[1]][comb[0]] = distance
+
+            self._distance_matrices.append(matrix)
+
+        return self._distance_matrices
+
     @property
     def frame_data(self):
         return self._frame_data
+
+    @property
+    def distance_matices(self):
+        return self._distance_matices
+    
