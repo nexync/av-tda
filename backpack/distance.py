@@ -37,3 +37,12 @@ def distance_from_edges(agent1, agent2):
     y = np.maximum(0, np.maximum(a1_min - a2_max, a2_min - a1_max))
     
     return np.sum(np.abs(y) ** 2, axis=-1) ** (1/2)
+
+def relative_motion(agent1, agent2):
+    '''
+    Calculates the relative motion between any time agents
+    @param agent1 - AgentDataset dictionary that represents first agent
+    @param agent2 - AgentDataset dictionary that represents second agent
+    @return - numpy float distance between two agents' closest edges
+    '''
+    return agent1['velocity'] - agent2['velocity']

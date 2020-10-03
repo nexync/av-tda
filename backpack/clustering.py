@@ -26,6 +26,8 @@ class Cluster:
 
         self._frame_data = self._frame_data[1:]
 
+        self._cluster_to_indices = None
+
     def normalize_data(self):
         '''
         Normalize the frame data by by applying the standard score (X - mu) / sigma
@@ -92,25 +94,49 @@ class Cluster:
 
         plt.title('estimated number of clusters: %d' % self._n_clusters)
 
-    def generate_distance_matrixes(self, edge_distances=True):
+    def generate_distance_matrices(self, edge_distances=True):
         '''
         Generates and stores distance matricies between all of the cars within each cluster
         @param edge_distances: (bool). if two find distances between nearest edges of cars. if false use centroid
         @return distance_matrices. the list of distance matrices
         '''
 
-        cluster_to_indices = [None] * self._n_clusters
+        function = distance_from_edges if edge_distances else distance_from_centroids
 
-        for i, label in enumerate(self._labels):
-            # if we have not created the array at the particular index yet, do so
-            if not cluster_to_indices[label]:
-                cluster_to_indices[label] = []
+        self._distance_matrices = self._pairwise_compute(function)
 
-            cluster_to_indices[label].append(i)
+        return self._distance_matrices
 
-        self._distance_matrices = []
+    def generate_relative_motion_matrices(self):
+        '''
+        Generates and stores relative motion matrices between all of the cars within each cluster
+        @return relative_motion_matrices - the list of relative motion matrices
+        '''
 
-        for cluster in cluster_to_indices:
+        self._relative_motion_matrices = self._pairwise_compute(relative_motion)
+
+        return self._relative_motion_matrices
+
+    def _pairwise_compute(self, function):
+        '''
+        Applyies a function between all agents within each cluster
+        @param function -- function to apply between each agent. function should take two agents
+        @return matrices -- list of matrices generated
+        '''
+
+        if not self._cluster_to_indices:
+            self._cluster_to_indices = [None] * self._n_clusters
+
+            for i, label in enumerate(self._labels):
+                # if we have not created the array at the particular index yet, do so
+                if not self._cluster_to_indices[label]:
+                    self._cluster_to_indices[label] = []
+
+                self._cluster_to_indices[label].append(i)
+
+        matrices = []
+
+        for cluster in self._cluster_to_indices:
             matrix = dict()
 
             for comb in combinations(cluster, 2):
@@ -120,27 +146,29 @@ class Cluster:
                 agent1 = self._agents[agent1_index]
                 agent2 = self._agents[agent2_index]
 
-                if edge_distances:
-                    distance = distance_from_edges(agent1, agent2)
-                else:
-                    distance = distance_from_centroids(agent1, agent2)
+                val1 = function(agent1, agent2)
+                val2 = function(agent2, agent1)
 
                 if comb[0] not in matrix:
                     matrix[comb[0]] = {}
                 if comb[1] not in matrix:
                     matrix[comb[1]] = {}
 
-                matrix[comb[0]][comb[1]] = matrix[comb[1]][comb[0]] = distance
+                matrix[comb[0]][comb[1]] = val1
+                matrix[comb[1]][comb[0]] = val2
 
-            self._distance_matrices.append(matrix)
+            matrices.append(matrix)
 
-        return self._distance_matrices
+        return matrices
 
     @property
     def frame_data(self):
         return self._frame_data
 
     @property
-    def distance_matices(self):
-        return self._distance_matices
+    def distance_matrices(self):
+        return self._distance_matrices
     
+    @property
+    def relative_motion_matrices(self):
+        return self._relative_motion_matrices
