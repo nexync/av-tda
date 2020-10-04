@@ -18,39 +18,40 @@ class Cluster:
         self._agents = agents  # reference to all agents
         self._aii = frame['agent_index_interval']
         
-        self._frame_data = np.array([[0, 0, 0, 0, 0]])
+        self._embeddings = np.array([[0, 0, 0, 0, 0]])
 
         for agent in agents[self._aii[0]: self._aii[1]]:
             embedding = np.concatenate((agent['centroid'], agent['velocity'], [agent['yaw']]))
-            self._frame_data = np.append(self._frame_data, [embedding], axis=0)
+            self._embeddings = np.append(self._embeddings, [embedding], axis=0)
 
-        self._frame_data = self._frame_data[1:]
+        self._embeddings = self._embeddings[1:]
 
         self._cluster_to_indices = None
+        self._relative_motion_matrices = None
 
     def normalize_data(self):
         '''
         Normalize the frame data by by applying the standard score (X - mu) / sigma
         '''
-        means = self._frame_data.mean(axis=0)
-        stds = self._frame_data.std(axis=0)
+        means = self._embeddings.mean(axis=0)
+        stds = self._embeddings.std(axis=0)
 
         for i in range(len(means)):
             # ensure no nans by replacing last column with zeros if std = 0
             if stds[i] != 0:
-                self._frame_data[:, i] = (self._frame_data[:, i] - means[i]) / stds[i]
+                self._embeddings[:, i] = (self._embeddings[:, i] - means[i]) / stds[i]
             else:
-                self._frame_data[:, i] = np.zeros((len(self._frame_data)))
+                self._embeddings[:, i] = np.zeros((len(self._embeddings)))
 
     def meanshift_cluster(self, quantile=0.3):
         '''
         Perfoms meanshift clustering algorithm on the data. stores labels, cluster centers, unique labels, and number of clusters
         @param quantile - (default: 0.3). should be between [0, 1]. 0.5 means median of all pairwise distances is used
         '''
-        bandwidth = estimate_bandwidth(self._frame_data, quantile=quantile, n_samples=len(self._frame_data))
+        bandwidth = estimate_bandwidth(self._embeddings, quantile=quantile, n_samples=len(self._embeddings))
         ms = MeanShift(bandwidth=bandwidth, bin_seeding=True)
 
-        ms.fit(self._frame_data)
+        ms.fit(self._embeddings)
 
         self._labels = ms.labels_
         self._cluster_centers = ms.cluster_centers_
@@ -64,7 +65,7 @@ class Cluster:
         '''
         km = KMeans(n_clusters=n_clusters)
 
-        km.fit(self._frame_data)
+        km.fit(self._embeddings)
 
         self._labels = km.labels_
         self._cluster_centers = km.cluster_centers_
@@ -90,7 +91,7 @@ class Cluster:
         for k, col in zip(range(self._n_clusters), colors):
             my_members = self._labels == k
             cluster_center = self._cluster_centers[k]
-            ax.plot(self._frame_data[my_members, 0], self._frame_data[my_members, 1], self._frame_data[my_members, other], col + '.')
+            ax.plot(self._embeddings[my_members, 0], self._embeddings[my_members, 1], self._embeddings[my_members, other], col + '.')
 
         plt.title('estimated number of clusters: %d' % self._n_clusters)
 
@@ -116,6 +117,39 @@ class Cluster:
         self._relative_motion_matrices = self._pairwise_compute(relative_motion)
 
         return self._relative_motion_matrices
+
+    def generate_average_relative_motions(self):
+        '''
+        Generates list the average relative motions for each of the agents
+        @return - list of average relative motion for each agent
+        TODO: Try different weighting for this, maybe have different angle mean different things
+        '''
+
+        def avg(x):
+            return sum(x) / len(x)
+
+        # ensure that relative motion matrices have been made
+        if not self._relative_motion_matrices:
+            self.generate_relative_motion_matrices()
+
+        self._average_relative_motions = []
+
+        for i in range(self._aii[1] - self._aii[0]):
+            # find average for each agent index
+            cluster = self._labels[i]
+
+            # edge case for an agent in its own cluster
+            if i not in self._relative_motion_matrices[cluster]:
+                continue
+
+            relative_motions = list(self._relative_motion_matrices[cluster][i].values())
+
+            average_relative_motion = avg(relative_motions)
+
+            self._average_relative_motions.append(average_relative_motion)
+
+        return self._average_relative_motions
+
 
     def _pairwise_compute(self, function):
         '''
@@ -146,6 +180,7 @@ class Cluster:
                 agent1 = self._agents[agent1_index]
                 agent2 = self._agents[agent2_index]
 
+                # some inefficiencies could occur here
                 val1 = function(agent1, agent2)
                 val2 = function(agent2, agent1)
 
@@ -162,8 +197,8 @@ class Cluster:
         return matrices
 
     @property
-    def frame_data(self):
-        return self._frame_data
+    def embeddings(self):
+        return self._embeddings
 
     @property
     def distance_matrices(self):
@@ -172,3 +207,7 @@ class Cluster:
     @property
     def relative_motion_matrices(self):
         return self._relative_motion_matrices
+
+    @property
+    def average_relative_motions(self):
+        return self._average_relative_motions
