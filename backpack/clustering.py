@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-from sklearn.cluster import MeanShift, estimate_bandwidth, KMeans
+from sklearn.cluster import MeanShift, estimate_bandwidth, KMeans, AgglomerativeClustering
 
 from itertools import cycle, combinations
 
@@ -69,6 +69,18 @@ class Cluster:
 
         self._labels = km.labels_
         self._cluster_centers = km.cluster_centers_
+        self._labels_unique = np.unique(self._labels)
+        self._n_clusters = len(self._labels_unique)
+
+    def agglomerative_cluster(self, n_clusters=8):
+        '''
+        '''
+        ag = AgglomerativeClustering(n_clusters=n_clusters)
+
+        ag.fit(self._embeddings)
+
+        self._labels = ag.labels_
+        self._cluster_centers = np.asarray([0] * len(self._labels))
         self._labels_unique = np.unique(self._labels)
         self._n_clusters = len(self._labels_unique)
 
