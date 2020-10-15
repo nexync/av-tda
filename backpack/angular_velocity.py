@@ -1,6 +1,6 @@
 import numpy as np
 
-FRAME_DURATION = 0.1  # in seconds
+FRAMES_PER_SECOND = 10
 
 # find the angle between two vectors
 angle_between = lambda u, v: np.arccos(np.dot(u, v) / (np.linalg.norm(u) * np.linalg.norm(v)))
@@ -82,7 +82,7 @@ class AngularVelocityComputer:
         avg_theta = np.mean(thetas)
         
         # in revolutions per second
-        angular_velocity = FRAME_DURATION * 2 * np.pi / avg_theta
+        angular_velocity = FRAMES_PER_SECOND * avg_theta / (2 * np.pi)
         
         return angular_velocity
             
