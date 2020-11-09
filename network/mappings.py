@@ -5,8 +5,8 @@ def map_scene_array_to_dict(array):
 def map_frame_array_to_dict(array):
     return dict(zip(['timestamp', 'agent_index_interval', 'ego_blank', 'ego_translation','ego_rotation'], array))
 def map_agent_array_to_dict(array):
-    return dict(zip(['centroid', 'extent', 'yaw', 'velocity', 'track_id'], array))
+    return dict(zip(['centroid', 'extent', 'yaw', 'velocity', 'track_id','label_probabilities'], array))
 def map_ret_to_dict(array):
-    return dict(zip(['coordinates','velocity','yaw','tags'],array))
+    return dict(zip(['coordinates','velocity','yaw','tags','prob'],array))
 def getWithout(arr,n):
     return arr[arr!=n]
