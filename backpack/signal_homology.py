@@ -7,10 +7,12 @@ def calculateSignalHomology(y):
     '''
     x = np.arange(len(y))
     sy = np.sort(y)
+    res = [] 
+    [res.append(z) for z in sy if z not in res] 
     cc = {}
     birth = []
     death = []
-    for s in sy:
+    for s in res:
         ind = np.where(y == s)[0]
         for i in ind:
             if i-1 not in cc and i+1 not in cc:
@@ -18,12 +20,12 @@ def calculateSignalHomology(y):
             else:
                 if i-1 not in cc:
                     cc[i] = cc[i+1]
-                    birth.append(s)
-                    death.append(s)
+                    #birth.append(s)
+                    #death.append(s)
                 elif i+1 not in cc:
                     cc[i] = cc[i-1]
-                    birth.append(s)
-                    death.append(s)
+                    #birth.append(s)
+                    #death.append(s)
                 else:
                     cc[i] = min(cc[i-1],cc[i+1])
                     if cc[i-1] <= cc[i+1]:
